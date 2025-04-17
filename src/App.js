@@ -1,25 +1,56 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate
+} from 'react-router-dom';
+import AdminPanel from './components/AdminPanel';
+import Chat       from './components/Chat';
+import Login      from './components/Login';
 
-function App() {
+export default function App() {
+  // 1. Read the token synchronously from localStorage on first render:
+  const [isAuth, setIsAuth] = useState(() => Boolean(localStorage.getItem('token')));
+
+  const handleLogin = () => {
+    // after successful login, store token and mark auth
+    localStorage.setItem('token', 'dummy‑token');
+    setIsAuth(true);
+  };
+
+  const handleLogout = () => {
+    // clear token and mark not-auth
+    localStorage.removeItem('token');
+    setIsAuth(false);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        {/* Login page */}
+        <Route
+          path="/login"
+          element={
+            isAuth
+              ? <Navigate to="/" replace />
+              : <Login onLogin={handleLogin} />
+          }
+        />
+
+        {/* Admin panel is protected */}
+        <Route
+          path="/"
+          element={
+            isAuth
+              ? <AdminPanel onLogout={handleLogout} />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* Public chat for users */}
+        <Route path="/chat/:sessionId" element={<Chat />} />
+      </Routes>
+    </Router>
   );
 }
-
-export default App;
