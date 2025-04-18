@@ -22,8 +22,8 @@ const Admin = () => {
       {sessionId && (
         <div>
           <p>Share this link with your users:</p>
-          <a href={`http://localhost:3000/chat/${sessionId}`}>
-            http://localhost:3000/chat/{sessionId}
+          <a href={`https://chat-frontend-three-puce.vercel.app/${sessionId}`}>
+          https://chat-frontend-three-puce.vercel.app/{sessionId}
           </a>
         </div>
       )}
