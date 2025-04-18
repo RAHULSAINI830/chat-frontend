@@ -1,13 +1,14 @@
 // src/components/Admin.js
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API } from '../api';
 
 const Admin = () => {
   const [sessionId, setSessionId] = useState('');
 
   const createChatSession = async () => {
     try {
-      const res = await axios.post('http://localhost:5002/api/create-chat');
+      const res = await axios.post(`${API}/api/create-chat`);
       setSessionId(res.data.sessionId);
     } catch (error) {
       console.error('Failed to create chat session', error);

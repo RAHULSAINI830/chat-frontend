@@ -1,34 +1,38 @@
 // src/components/Chat.js
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams }               from 'react-router-dom';
-import io                          from 'socket.io-client';
-import axios                       from 'axios';
+import { useParams } from 'react-router-dom';
+import io from 'socket.io-client';
+import axios from 'axios';
+import { API } from '../api';
 import { Image as ImageIcon, Mic, MicOff } from 'lucide-react';
 import './Chat.css';
 
-const socket = io('http://localhost:5002');
+const socket = io(API, { transports: ['websocket'] });
 
 export default function Chat() {
   const { sessionId } = useParams();
   const [messages, setMessages] = useState([]);
-  const [input, setInput]       = useState('');
+  const [input, setInput] = useState('');
 
   // media & recording state
-  const [file, setFile]          = useState(null);
-  const [fileType, setFileType]  = useState('');
+  const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState('');
   const [previewURL, setPreview] = useState('');
-  const [recording, setRec]      = useState(false);
-  const mediaRef                 = useRef(null);
-  const chunksRef                = useRef([]);
-  const endRef                   = useRef(null);
+  const [recording, setRec] = useState(false);
+  const mediaRef = useRef(null);
+  const chunksRef = useRef([]);
+  const endRef = useRef(null);
 
   // time / date formatters
-  const fmt = ts =>
+  const fmt = (ts) =>
     new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const fmtDate = ts => {
+  const fmtDate = (ts) => {
     const d = new Date(ts);
     return d.toLocaleDateString('en-US', {
-      weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -37,16 +41,17 @@ export default function Chat() {
     if (!sessionId) return;
     socket.emit('joinSession', sessionId);
 
-    axios.get(`http://localhost:5002/api/messages/${sessionId}`)
-      .then(res => setMessages(res.data))
+    axios
+      .get(`${API}/api/messages/${sessionId}`)
+      .then((res) => setMessages(res.data))
       .catch(console.error);
 
-    const onMsg = m => {
+    const onMsg = (m) => {
       if (m.sessionId === sessionId) {
-        setMessages(ms => [...ms, {
-          ...m,
-          createdAt: m.createdAt || new Date().toISOString()
-        }]);
+        setMessages((ms) => [
+          ...ms,
+          { ...m, createdAt: m.createdAt || new Date().toISOString() },
+        ]);
       }
     };
     socket.on('chatMessage', onMsg);
@@ -77,7 +82,7 @@ export default function Chat() {
       const mr = new MediaRecorder(stream);
       mediaRef.current = mr;
       chunksRef.current = [];
-      mr.ondataavailable = e => e.data.size && chunksRef.current.push(e.data);
+      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         if (blob.size > 100 * 1024) {
@@ -96,25 +101,24 @@ export default function Chat() {
   };
   const stopRec = () => {
     mediaRef.current?.stop();
-    mediaRef.current?.stream.getTracks().forEach(t => t.stop());
+    mediaRef.current?.stream.getTracks().forEach((t) => t.stop());
     setRec(false);
   };
 
   // send message
-  const handleSend = async e => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !file) return;
 
     let fileUrl = '';
     if (file) {
       const fd = new FormData();
-      fd.append('file',
-        file instanceof File
-          ? file
-          : new File([file], 'voice.webm', { type: fileType })
+      fd.append(
+        'file',
+        file instanceof File ? file : new File([file], 'voice.webm', { type: fileType })
       );
       try {
-        const res = await axios.post('http://localhost:5002/api/upload', fd);
+        const res = await axios.post(`${API}/api/upload`, fd);
         fileUrl = res.data.fileUrl;
       } catch {
         return alert('Upload failed.');
@@ -126,7 +130,7 @@ export default function Chat() {
       sender: 'User',
       text: input.trim(),
       fileUrl,
-      fileType
+      fileType,
     });
 
     setInput('');
@@ -135,7 +139,7 @@ export default function Chat() {
     setPreview('');
   };
 
-  // render with avatars out­side bubbles
+  // render with avatars outside bubbles
   const renderMessages = () => {
     const elems = [];
     let lastDate = null;
@@ -159,26 +163,16 @@ export default function Chat() {
           <div key={i} className="user-chat-flex-end user-chat-message">
             <div className="user-chat-msg-content">
               {m.fileUrl && m.fileType.startsWith('image/') && (
-                <img
-                  src={m.fileUrl}
-                  alt="upload"
-                  className="user-chat-uploaded-image"
-                />
+                <img src={m.fileUrl} alt="upload" className="user-chat-uploaded-image" />
               )}
               {isAudio && (
-                <audio
-                  controls
-                  src={m.fileUrl}
-                  className="user-chat-uploaded-audio"
-                />
+                <audio controls src={m.fileUrl} className="user-chat-uploaded-audio" />
               )}
-              {m.text && (
-                <span className="user-chat-message-text">{m.text}</span>
-              )}
+              {m.text && <span className="user-chat-message-text">{m.text}</span>}
               <span className="user-chat-msg-time">{fmt(m.createdAt)}</span>
             </div>
             <img
-              src="https://cdn-icons-png.flaticon.com/512/8599/8599138.png"  /* ← add your user avatar URL here */
+              src="https://cdn-icons-png.flaticon.com/512/8599/8599138.png"
               alt="You"
               className="user-chat-msg-avatar"
             />
@@ -189,28 +183,18 @@ export default function Chat() {
         elems.push(
           <div key={i} className="user-chat-flex-start user-chat-message">
             <img
-              src="https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png"  /* ← add your admin avatar URL here */
+              src="https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png"
               alt="Admin"
               className="user-chat-msg-avatar"
             />
             <div className="user-chat-msg-content">
               {m.fileUrl && m.fileType.startsWith('image/') && (
-                <img
-                  src={m.fileUrl}
-                  alt="upload"
-                  className="user-chat-uploaded-image"
-                />
+                <img src={m.fileUrl} alt="upload" className="user-chat-uploaded-image" />
               )}
               {isAudio && (
-                <audio
-                  controls
-                  src={m.fileUrl}
-                  className="user-chat-uploaded-audio"
-                />
+                <audio controls src={m.fileUrl} className="user-chat-uploaded-audio" />
               )}
-              {m.text && (
-                <span className="user-chat-message-text">{m.text}</span>
-              )}
+              {m.text && <span className="user-chat-message-text">{m.text}</span>}
               <span className="user-chat-msg-time">{fmt(m.createdAt)}</span>
             </div>
           </div>
@@ -218,16 +202,14 @@ export default function Chat() {
       }
     });
 
-    return elems.length ? elems : (
-      <p className="user-chat-empty-msg">No messages yet.</p>
-    );
+    return elems.length ? elems : <p className="user-chat-empty-msg">No messages yet.</p>;
   };
 
   return (
     <div className="user-chat-container">
       <header className="user-chat-header">
         <img
-          src="https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png"  /* ← your user header avatar URL */
+          src="https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png"
           alt="You"
           className="user-chat-avatar"
         />
@@ -236,27 +218,22 @@ export default function Chat() {
 
       <div className="user-chat-messages">
         {renderMessages()}
-        <div ref={endRef}/>
+        <div ref={endRef} />
       </div>
 
       {previewURL && (
         <div className="user-chat-preview-wrapper">
           {fileType.startsWith('image/') ? (
-            <img
-              src={previewURL}
-              alt="preview"
-              className="user-chat-preview-image"
-            />
+            <img src={previewURL} alt="preview" className="user-chat-preview-image" />
           ) : (
-            <audio
-              controls
-              src={previewURL}
-              className="user-chat-preview-audio"
-            />
+            <audio controls src={previewURL} className="user-chat-preview-audio" />
           )}
           <button
             className="user-chat-preview-remove"
-            onClick={() => { setFile(null); setPreview(''); }}
+            onClick={() => {
+              setFile(null);
+              setPreview('');
+            }}
           >
             ✕
           </button>
@@ -265,25 +242,25 @@ export default function Chat() {
 
       <form onSubmit={handleSend} className="user-chat-form">
         <label htmlFor="imgPick" className="user-chat-attach-btn">
-          <ImageIcon size={20}/>
+          <ImageIcon size={20} />
         </label>
         <input
           id="imgPick"
           type="file"
           accept="image/*"
           hidden
-          onChange={e=>pick(e,'image/')}
+          onChange={(e) => pick(e, 'image/')}
         />
 
         <label htmlFor="audPick" className="user-chat-attach-btn">
-          <MicOff size={20}/>
+          <MicOff size={20} />
         </label>
         <input
           id="audPick"
           type="file"
           accept="audio/*"
           hidden
-          onChange={e=>pick(e,'audio/')}
+          onChange={(e) => pick(e, 'audio/')}
         />
 
         <button
@@ -291,14 +268,14 @@ export default function Chat() {
           className={`user-chat-attach-btn ${recording ? 'user-chat-recording' : ''}`}
           onClick={recording ? stopRec : startRec}
         >
-          <Mic size={20}/>
+          <Mic size={20} />
         </button>
 
         <input
           className="user-chat-input"
           placeholder="Type a message…"
           value={input}
-          onChange={e=>setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
         />
 
         <button type="submit" className="user-chat-send-button">

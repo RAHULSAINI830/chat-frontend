@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { API } from '../api';
 import {
   Image as ImageIcon,
   Mic,
@@ -10,8 +11,7 @@ import {
 } from 'lucide-react';
 import './AdminPanel.css';
 
-/* Socket.IO connection */
-const socket = io('http://localhost:5002');
+const socket = io(API, { transports: ['websocket'] });
 
 /* ChatComponent – right‑hand pane with external avatars on opposite side */
 const ChatComponent = ({ sessionId, user }) => {
@@ -43,7 +43,7 @@ const ChatComponent = ({ sessionId, user }) => {
     socket.emit('joinSession', sessionId);
 
     axios
-      .get(`http://localhost:5002/api/messages/${sessionId}`)
+      .get(`${API}/api/messages/${sessionId}`)
       .then(res => setMessages(res.data))
       .catch(console.error);
 
@@ -122,7 +122,7 @@ const ChatComponent = ({ sessionId, user }) => {
             ? file
             : new File([file], 'voice.webm', { type: fileType })
         );
-        const { data } = await axios.post('http://localhost:5002/api/upload', fd);
+        const { data } = await axios.post(`${API}/api/upload`, fd);
         fileUrl = data.fileUrl;
       } catch (err) {
         console.error('Upload failed:', err);
@@ -272,7 +272,7 @@ const ChatComponent = ({ sessionId, user }) => {
   );
 };
 
-/* SettingsPanel – sidebar modal (with delete user) */
+/* SettingsPanel – sidebar modal */
 const SettingsPanel = ({ onClose, refreshUsers }) => {
   const [activeTab, setActiveTab]     = useState('create');
   const [name, setName]               = useState('');
@@ -283,7 +283,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5002/api/users');
+      const { data } = await axios.get(`${API}/api/users`);
       setUsers(data);
     } catch (err) {
       console.error('Fetch users error:', err);
@@ -293,7 +293,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
   const handleDeleteUser = async id => {
     if (!window.confirm('Delete this user?')) return;
     try {
-      await axios.delete(`http://localhost:5002/api/users/${id}`);
+      await axios.delete(`${API}/api/users/${id}`);
       fetchUsers();
       refreshUsers();
     } catch (err) {
@@ -309,7 +309,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
       return;
     }
     try {
-      await axios.post('http://localhost:5002/api/create-user', {
+      await axios.post(`${API}/api/create-user`, {
         name, email, companyName
       });
       setName(''); setEmail(''); setCompanyName('');
@@ -431,7 +431,7 @@ const AdminPanel = ({ onLogout }) => {
 
   const loadUsers = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5002/api/users');
+      const { data } = await axios.get(`${API}/api/users`);
       setUsers(data);
     } catch (err) {
       console.error('Fetch users error:', err);
