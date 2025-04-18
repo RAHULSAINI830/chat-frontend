@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import './AdminPanel.css';
 
-const socket = io(API, { transports: ['websocket'] });
+const socket = io(API);
 
 /* ChatComponent – right‑hand pane with external avatars on opposite side */
 const ChatComponent = ({ sessionId, user }) => {
