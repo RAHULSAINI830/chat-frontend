@@ -213,7 +213,7 @@
     word-break: break-word;
   }
   .chat-message.admin { background: var(--primary); color: #fff; }
-  .chat-message.user  { background: #eaeaea;    color: #333; }
+  .chat-message.user  { background: #eaeaea;    color: #333; width: 257px; }
   
   .audio-msg {
     background: transparent !important;
