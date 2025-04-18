@@ -7,7 +7,7 @@ import { API } from '../api';
 import { Image as ImageIcon, Mic, MicOff } from 'lucide-react';
 import './Chat.css';
 
-const socket = io(API, { transports: ['websocket'] });
+const socket = io(API);
 
 export default function Chat() {
   const { sessionId } = useParams();
