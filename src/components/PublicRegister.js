@@ -1,3 +1,4 @@
+// src/components/PublicRegister.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import { API } from '../api';
@@ -32,18 +33,18 @@ const PublicRegister = () => {
   };
 
   return (
-    <div className="public-register">
-      <div className="register-card">
-        <h2>Welcome—join the chat</h2>
-        {error && <p className="form-error">{error}</p>}
-
-        <form onSubmit={handleRegister} className="register-form">
-          <div className="form-group">
-            <label htmlFor="name">Name</label>
-            <div className="input-icon-wrapper">
-              <User size={16} className="input-icon" />
+    <div className="pr-register-container">
+      <div className="pr-register-card">
+        <h2 className="pr-register-title">Welcome—join the chat</h2>
+        {error && <p className="pr-form-error">{error}</p>}
+        <form onSubmit={handleRegister} className="pr-register-form">
+          <div className="pr-form-group">
+            <label htmlFor="pr-name" className="pr-form-label">Name</label>
+            <div className="pr-input-icon-wrapper">
+              <User size={16} className="pr-input-icon" />
               <input
-                id="name"
+                id="pr-name"
+                className="pr-input-field"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Your name"
@@ -52,13 +53,14 @@ const PublicRegister = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <div className="input-icon-wrapper">
-              <Mail size={16} className="input-icon" />
+          <div className="pr-form-group">
+            <label htmlFor="pr-email" className="pr-form-label">Email</label>
+            <div className="pr-input-icon-wrapper">
+              <Mail size={16} className="pr-input-icon" />
               <input
-                id="email"
+                id="pr-email"
                 type="email"
+                className="pr-input-field"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -67,12 +69,13 @@ const PublicRegister = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="company">Company Name</label>
-            <div className="input-icon-wrapper">
-              <Briefcase size={16} className="input-icon" />
+          <div className="pr-form-group">
+            <label htmlFor="pr-company" className="pr-form-label">Company Name</label>
+            <div className="pr-input-icon-wrapper">
+              <Briefcase size={16} className="pr-input-icon" />
               <input
-                id="company"
+                id="pr-company"
+                className="pr-input-field"
                 value={companyName}
                 onChange={e => setCompany(e.target.value)}
                 placeholder="Your company"
@@ -81,7 +84,7 @@ const PublicRegister = () => {
             </div>
           </div>
 
-          <button type="submit" className="register-button">
+          <button type="submit" className="pr-register-button">
             Join Chat
           </button>
         </form>
