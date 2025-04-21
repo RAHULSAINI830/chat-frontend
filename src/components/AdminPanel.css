@@ -7,7 +7,7 @@
     --primary:        #007bff;
     --primary-dark:   #0062d1;
     --primary-light:  #4c8dff;
-    --sidebar-bg:     linear-gradient(160deg,#0000 0%,#1e3572 50%);
+    --sidebar-bg:     linear-gradient(160deg,#0000 0%,#1e3572 65%);
     --card-radius:    10px;
     --shadow-sm:      0 2px 4px rgba(0,0,0,.08);
     --shadow-lg:      0 10px 24px rgba(0,0,0,.15);
