@@ -1,4 +1,3 @@
-// src/components/AdminPanel.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -42,7 +41,7 @@ const ChatComponent = ({ sessionId, user }) => {
     if (!sessionId) return;
     socket.emit('joinSession', sessionId);
 
-    // Request notification permission once
+    // request notification permission once
     if ('Notification' in window && Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
@@ -60,7 +59,7 @@ const ChatComponent = ({ sessionId, user }) => {
         };
         setMessages(prev => [...prev, msg]);
 
-        // Show desktop notification for incoming messages from user
+        // desktop notification for incoming messages from user
         if (
           'Notification' in window &&
           Notification.permission === 'granted' &&
@@ -481,7 +480,6 @@ const AdminPanel = ({ onLogout }) => {
   useEffect(() => { loadUsers(); }, []);
 
   useEffect(() => {
-    // when a new user is created elsewhere, prepend it to our list
     socket.on('newUser', user => {
       setUsers(prev => [user, ...prev]);
     });
@@ -504,7 +502,7 @@ const AdminPanel = ({ onLogout }) => {
               className="logo-image"
             />
           </div>
-  
+
           <div className="user-list">
             {users.length ? (
               users.map(u => {
@@ -535,7 +533,7 @@ const AdminPanel = ({ onLogout }) => {
               <p className="no-session">No users created yet.</p>
             )}
           </div>
-  
+
           <button className="settings-button" onClick={() => setShow(true)}>
             Settings
           </button>
@@ -543,7 +541,7 @@ const AdminPanel = ({ onLogout }) => {
             Logout
           </button>
         </aside>
-  
+
         <main className="admin-main">
           {showSettings ? (
             <SettingsPanel
@@ -568,7 +566,6 @@ const AdminPanel = ({ onLogout }) => {
       </div>
     </div>
   );
-  
 };
 
 export default AdminPanel;
