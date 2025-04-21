@@ -21,6 +21,7 @@ const ChatComponent = ({ sessionId, user }) => {
   const [fileType, setFileType]   = useState('');
   const [previewURL, setPreview]  = useState('');
   const [recording, setRecording] = useState(false);
+  const [sending, setSending]     = useState(false);
   const mediaRecRef               = useRef(null);
   const chunksRef                 = useRef([]);
   const endRef                    = useRef(null);
@@ -127,7 +128,8 @@ const ChatComponent = ({ sessionId, user }) => {
 
   const handleSend = async e => {
     e.preventDefault();
-    if (!input.trim() && !file) return;
+    if ((!input.trim() && !file) || sending) return;
+    setSending(true);
 
     let fileUrl = '';
     if (file) {
@@ -143,6 +145,8 @@ const ChatComponent = ({ sessionId, user }) => {
         fileUrl = data.fileUrl;
       } catch (err) {
         console.error('Upload failed:', err);
+        alert('Upload failed. Please try again.');
+        setSending(false);
         return;
       }
     }
@@ -159,6 +163,7 @@ const ChatComponent = ({ sessionId, user }) => {
     setFile(null);
     setFileType('');
     setPreview('');
+    setSending(false);
   };
 
   const renderMessages = () => {
@@ -281,9 +286,12 @@ const ChatComponent = ({ sessionId, user }) => {
           placeholder="Type a message…"
           value={input}
           onChange={e => setInput(e.target.value)}
+          disabled={sending}
         />
 
-        <button className="chat-send-button">Send</button>
+        <button className="chat-send-button" disabled={sending}>
+          {sending ? 'Sending…' : 'Send'}
+        </button>
       </form>
     </div>
   );
@@ -311,7 +319,8 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
     if (!window.confirm('Delete this user?')) return;
     try {
       await axios.delete(`${API}/api/users/${id}`);
-      fetchUsers(); refreshUsers();
+      fetchUsers();
+      refreshUsers();
     } catch (err) {
       console.error('Delete user error:', err);
       alert('Could not delete user.');
@@ -325,16 +334,25 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
       return;
     }
     try {
-      await axios.post(`${API}/api/create-user`, { name, email, companyName });
-      setName(''); setEmail(''); setCompanyName(''); setError('');
-      setActiveTab('list'); await fetchUsers(); refreshUsers();
+      await axios.post(`${API}/api/create-user`, {
+        name, email, companyName
+      });
+      setName('');
+      setEmail('');
+      setCompanyName('');
+      setError('');
+      setActiveTab('list');
+      await fetchUsers();
+      refreshUsers();
     } catch (err) {
       console.error('Create user error:', err);
       setError('Error creating user.');
     }
   };
 
-  useEffect(() => { if (activeTab === 'list') fetchUsers(); }, [activeTab]);
+  useEffect(() => {
+    if (activeTab === 'list') fetchUsers();
+  }, [activeTab]);
 
   return (
     <div className="settings-panel">
@@ -359,25 +377,48 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
             {error && <p className="form-error">{error}</p>}
             <div className="form-group">
               <label>Name:</label>
-              <input value={name} onChange={e => setName(e.target.value)} required />
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+              />
             </div>
             <div className="form-group">
               <label>Email:</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="form-group">
               <label>Company Name:</label>
-              <input value={companyName} onChange={e => setCompanyName(e.target.value)} required />
+              <input
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                required
+              />
             </div>
             <button className="create-user-button">Create</button>
+
+            {/* Invite link group */}
             <div className="form-group invite-link-group">
               <label>Registration Link:</label>
               <div className="invite-link-wrapper">
-                <input type="text" value={`${window.location.origin}/register`} readOnly />
+                <input
+                  type="text"
+                  value={`${window.location.origin}/register`}
+                  readOnly
+                />
                 <button
                   type="button"
                   className="copy-invite-link-button"
-                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/register`)}
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/register`
+                    )
+                  }
                 >
                   Copy
                 </button>
@@ -388,33 +429,52 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
         {activeTab === 'list' && (
           <table className="user-table">
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th></tr>
+              <tr>
+                <th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th>
+              </tr>
             </thead>
             <tbody>
-              {users.length ? users.map(u => (
-                <tr key={u._id}>
-                  <td>{u.name}</td><td>{u.email}</td><td>{u.companyName}</td>
-                  <td><a href={u.link} target="_blank" rel="noopener noreferrer">{u.link}</a></td>
-                  <td>
-                    <button className="delete-user-button" onClick={() => handleDeleteUser(u._id)}>
-                      Delete
-                    </button>
+              {users.length ? (
+                users.map(u => (
+                  <tr key={u._id}>
+                    <td>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>{u.companyName}</td>
+                    <td>
+                      <a href={u.link} target="_blank" rel="noopener noreferrer">
+                        {u.link}
+                      </a>
+                    </td>
+                    <td>
+                      <button
+                        className="delete-user-button"
+                        onClick={() => handleDeleteUser(u._id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center' }}>
+                    No users found.
                   </td>
                 </tr>
-              )) : (
-                <tr><td colSpan="5" style={{ textAlign: 'center' }}>No users found.</td></tr>
               )}
             </tbody>
           </table>
         )}
       </div>
 
-      <button className="close-settings-button" onClick={onClose}>Close Settings</button>
+      <button className="close-settings-button" onClick={onClose}>
+        Close Settings
+      </button>
     </div>
   );
 };
 
-/* AdminPanel – root component */
+/* AdminPanel – root component with Logout button */
 const AdminPanel = ({ onLogout }) => {
   const [users, setUsers]             = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -433,7 +493,6 @@ const AdminPanel = ({ onLogout }) => {
 
   useEffect(() => {
     loadUsers();
-    // hydrate unreadCounts from localStorage
     const stored = localStorage.getItem('unreadCounts');
     if (stored) {
       try {
