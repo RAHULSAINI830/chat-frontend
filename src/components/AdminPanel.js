@@ -504,7 +504,7 @@ const AdminPanel = ({ onLogout }) => {
               className="logo-image"
             />
           </div>
-
+  
           <div className="user-list">
             {users.length ? (
               users.map(u => {
@@ -513,7 +513,7 @@ const AdminPanel = ({ onLogout }) => {
                 return (
                   <div
                     key={u._id}
-                    className={`session-card ${active ? 'selected' : ''}`}`
+                    className={`session-card ${active ? 'selected' : ''}`}
                     onClick={() => {
                       setSelected({ ...u, sessionId });
                       setShow(false);
@@ -521,7 +521,7 @@ const AdminPanel = ({ onLogout }) => {
                   >
                     <img
                       src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                      alt={u.name}`
+                      alt={u.name}
                       className="avatar-sm"
                     />
                     <div>
@@ -535,7 +535,7 @@ const AdminPanel = ({ onLogout }) => {
               <p className="no-session">No users created yet.</p>
             )}
           </div>
-
+  
           <button className="settings-button" onClick={() => setShow(true)}>
             Settings
           </button>
@@ -543,7 +543,7 @@ const AdminPanel = ({ onLogout }) => {
             Logout
           </button>
         </aside>
-
+  
         <main className="admin-main">
           {showSettings ? (
             <SettingsPanel
@@ -568,6 +568,7 @@ const AdminPanel = ({ onLogout }) => {
       </div>
     </div>
   );
+  
 };
 
 export default AdminPanel;
