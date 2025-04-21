@@ -372,6 +372,29 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
               />
             </div>
             <button className="create-user-button">Create</button>
+
+            {/* Invite link group */}
+            <div className="form-group invite-link-group">
+              <label>Registration Link:</label>
+              <div className="invite-link-wrapper">
+                <input
+                  type="text"
+                  value={`${window.location.origin}/register`}
+                  readOnly
+                />
+                <button
+                  type="button"
+                  className="copy-invite-link-button"
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/register`
+                    )
+                  }
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
           </form>
         )}
         {activeTab === 'list' && (
