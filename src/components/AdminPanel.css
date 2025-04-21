@@ -438,3 +438,19 @@
   flex: 1;
   margin-right: 0.5rem;
 }
+
+.session-card {
+  position: relative;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: #e74c3c;
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+}
+
