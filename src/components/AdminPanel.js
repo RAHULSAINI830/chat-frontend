@@ -1,3 +1,4 @@
+// src/components/AdminPanel.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -59,13 +60,13 @@ const ChatComponent = ({ sessionId, user }) => {
         };
         setMessages(prev => [...prev, msg]);
 
-        // desktop notification for incoming messages from user
+        // desktop notification showing the actual user name
         if (
           'Notification' in window &&
           Notification.permission === 'granted' &&
           m.sender !== 'Admin'
         ) {
-          new Notification(`New message from ${m.sender}`, {
+          new Notification(`New message from ${user.name}`, {
             body: m.text?.slice(0, 100) || 'Sent an attachment',
             icon: m.fileType.startsWith('image/') ? m.fileUrl : undefined
           });
@@ -75,7 +76,7 @@ const ChatComponent = ({ sessionId, user }) => {
 
     socket.on('chatMessage', handleMsg);
     return () => socket.off('chatMessage', handleMsg);
-  }, [sessionId]);
+  }, [sessionId, user.name]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -417,7 +418,11 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
           <table className="user-table">
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Company</th>
+                <th>Link</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -463,10 +468,11 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
 
 /* AdminPanel – root component with Logout button */
 const AdminPanel = ({ onLogout }) => {
-  const [users, setUsers]       = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [showSettings, setShow] = useState(false);
-  const navigate                = useNavigate();
+  const [users, setUsers]         = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [selected, setSelected]   = useState(null);
+  const [showSettings, setShow]   = useState(false);
+  const navigate                  = useNavigate();
 
   const loadUsers = async () => {
     try {
@@ -483,8 +489,25 @@ const AdminPanel = ({ onLogout }) => {
     socket.on('newUser', user => {
       setUsers(prev => [user, ...prev]);
     });
-    return () => socket.off('newUser');
-  }, []);
+
+    const handleNewMsg = m => {
+      if (m.sender === 'Admin') return;
+      if (selected && m.sessionId === selected.sessionId) {
+        setUnreadCounts(prev => ({ ...prev, [m.sessionId]: 0 }));
+      } else {
+        setUnreadCounts(prev => ({
+          ...prev,
+          [m.sessionId]: (prev[m.sessionId] || 0) + 1
+        }));
+      }
+    };
+    socket.on('chatMessage', handleNewMsg);
+
+    return () => {
+      socket.off('newUser');
+      socket.off('chatMessage', handleNewMsg);
+    };
+  }, [selected]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -492,80 +515,85 @@ const AdminPanel = ({ onLogout }) => {
   };
 
   return (
-  <div className="admin-panel">
-    <div className="admin-container">
-      <aside className="admin-sidebar">
-        <div className="logo-container">
-          <img
-            src="https://zentrades.pro/wp-content/uploads/2024/04/ZenFire-Black.svg"
-            alt="Logo"
-            className="logo-image"
-          />
-        </div>
-
-        <div className="user-list">
-          {users.length ? (
-            users.map(u => {
-              const active    = selected?._id === u._id;
-              const sessionId = u.link.split('/').pop();
-              return (
-                <div
-                  key={u._id}
-                  className={`session-card ${active ? 'selected' : ''}`}
-                  onClick={() => {
-                    setSelected({ ...u, sessionId });
-                    setShow(false);
-                  }}
-                >
-                  <img
-                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                    alt={u.name}
-                    className="avatar-sm"
-                  />
-                  <div>
-                    <p className="session-id">{u.name}</p>
-                    <small className="session-description">{u.email}</small>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="no-session">No users created yet.</p>
-          )}
-        </div>
-
-        <button className="settings-button" onClick={() => setShow(true)}>
-          Settings
-        </button>
-        <button className="logout-button" onClick={onLogout}>
-          Logout
-        </button>
-      </aside>
-
-      <main className="admin-main">
-        {showSettings ? (
-          <SettingsPanel
-            onClose={() => setShow(false)}
-            refreshUsers={loadUsers}
-          />
-        ) : selected ? (
-          <ChatComponent sessionId={selected.sessionId} user={selected} />
-        ) : (
-          <div className="no-chat-selected" style={{ flexDirection: 'column' }}>
+    <div className="admin-panel">
+      <div className="admin-container">
+        <aside className="admin-sidebar">
+          <div className="logo-container">
             <img
-              src="https://img.freepik.com/free-vector/feedback-loop-concept-illustration_114360-21826.jpg?w=360"
-              alt="Select a user"
-              className="empty-illustration"
+              src="https://zentrades.pro/wp-content/uploads/2024/04/ZenFire-Black.svg"
+              alt="Logo"
+              className="logo-image"
             />
-            <p style={{ marginTop: 16, color: '#666' }}>
-              Select a user from the left panel.
-            </p>
           </div>
-        )}
-      </main>
+
+          <div className="user-list">
+            {users.length ? (
+              users.map(u => {
+                const active    = selected?._id === u._id;
+                const sessionId = u.link.split('/').pop();
+                const count     = unreadCounts[sessionId] || 0;
+                return (
+                  <div
+                    key={u._id}
+                    className={`session-card ${active ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelected({ ...u, sessionId });
+                      setShow(false);
+                      setUnreadCounts(prev => ({ ...prev, [sessionId]: 0 }));
+                    }}
+                  >
+                    <img
+                      src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
+                      alt={u.name}
+                      className="avatar-sm"
+                    />
+                    <div>
+                      <p className="session-id">{u.name}</p>
+                      <small className="session-description">{u.email}</small>
+                    </div>
+                    {count > 0 && (
+                      <span className="unread-badge">{count}</span>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <p className="no-session">No users created yet.</p>
+            )}
+          </div>
+
+          <button className="settings-button" onClick={() => setShow(true)}>
+            Settings
+          </button>
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
+        </aside>
+
+        <main className="admin-main">
+          {showSettings ? (
+            <SettingsPanel
+              onClose={() => setShow(false)}
+              refreshUsers={loadUsers}
+            />
+          ) : selected ? (
+            <ChatComponent sessionId={selected.sessionId} user={selected} />
+          ) : (
+            <div className="no-chat-selected" style={{ flexDirection: 'column' }}>
+              <img
+                src="https://img.freepik.com/free-vector/feedback-loop-concept-illustration_114360-21826.jpg?w=360"
+                alt="Select a user"
+                className="empty-illustration"
+              />
+              <p style={{ marginTop: 16, color: '#666' }}>
+                Select a user from the left panel.
+              </p>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default AdminPanel;
