@@ -1,548 +1,440 @@
-// src/components/AdminPanel.js
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import io from 'socket.io-client';
-import { API } from '../api';
-import {
-  Image as ImageIcon,
-  Mic,
-  MicOff
-} from 'lucide-react';
-import './AdminPanel.css';
+/* src/components/AdminPanel.css */
 
-const socket = io(API, { transports: ['websocket'] });
-
-/* ChatComponent – right‑hand pane with external avatars on opposite side */
-const ChatComponent = ({ sessionId, user }) => {
-  const [messages, setMessages]   = useState([]);
-  const [input, setInput]         = useState('');
-  const [file, setFile]           = useState(null);
-  const [fileType, setFileType]   = useState('');
-  const [previewURL, setPreview]  = useState('');
-  const [recording, setRecording] = useState(false);
-  const mediaRecRef               = useRef(null);
-  const chunksRef                 = useRef([]);
-  const endRef                    = useRef(null);
-
-  const fmtTime = ts =>
-    new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  const fmtDate = ts => {
-    const d = new Date(ts);
-    return d.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month:   'short',
-      day:     'numeric',
-      year:    'numeric'
-    });
-  };
-
-  useEffect(() => {
-    if (!sessionId) return;
-    socket.emit('joinSession', sessionId);
-
-    axios
-      .get(`${API}/api/messages/${sessionId}`)
-      .then(res => setMessages(res.data))
-      .catch(console.error);
-
-    const handleMsg = m => {
-      if (m.sessionId === sessionId) {
-        const msg = {
-          ...m,
-          createdAt: m.createdAt || new Date().toISOString()
-        };
-        setMessages(prev => [...prev, msg]);
-      }
-    };
-
-    socket.on('chatMessage', handleMsg);
-    return () => socket.off('chatMessage', handleMsg);
-  }, [sessionId]);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      mediaRecRef.current = mr;
-      chunksRef.current = [];
-
-      mr.ondataavailable = e => e.data.size && chunksRef.current.push(e.data);
-      mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        if (blob.size > 100 * 1024) {
-          alert('Recording exceeds 100 KB — please record a shorter clip.');
-          return;
-        }
-        setFile(blob);
-        setFileType(blob.type);
-        setPreview(URL.createObjectURL(blob));
-      };
-
-      mr.start();
-      setRecording(true);
-    } catch (err) {
-      console.error('Microphone error or permission denied:', err);
-    }
-  };
-
-  const stopRecording = () => {
-    mediaRecRef.current?.stop();
-    mediaRecRef.current?.stream.getTracks().forEach(t => t.stop());
-    setRecording(false);
-  };
-
-  const pickFile = (e, prefix) => {
-    const f = e.target.files?.[0];
-    if (!f || !f.type.startsWith(prefix) || f.size > 100 * 1024) {
-      alert(`Choose a ${prefix.startsWith('image') ? 'image' : 'audio'} under 100 KB`);
-      return;
-    }
-    setFile(f);
-    setFileType(f.type);
-    setPreview(URL.createObjectURL(f));
-  };
-
-  const handleSend = async e => {
-    e.preventDefault();
-    if (!input.trim() && !file) return;
-
-    let fileUrl = '';
-    if (file) {
-      try {
-        const fd = new FormData();
-        fd.append(
-          'file',
-          file instanceof File
-            ? file
-            : new File([file], 'voice.webm', { type: fileType })
-        );
-        const { data } = await axios.post(`${API}/api/upload`, fd);
-        fileUrl = data.fileUrl;
-      } catch (err) {
-        console.error('Upload failed:', err);
-        return;
-      }
-    }
-
-    socket.emit('chatMessage', {
-      sessionId,
-      sender: 'Admin',
-      text: input.trim(),
-      fileUrl,
-      fileType
-    });
-
-    setInput('');
-    setFile(null);
-    setFileType('');
-    setPreview('');
-  };
-
-  const renderMessages = () => {
-    const items = [];
-    let lastDate = null;
-
-    messages.forEach((m, i) => {
-      const msgDate = new Date(m.createdAt).toDateString();
-      if (msgDate !== lastDate) {
-        items.push(
-          <div key={`sep-${i}`} className="date-separator">
-            {fmtDate(m.createdAt)}
-          </div>
-        );
-        lastDate = msgDate;
-      }
-
-      const isAudio = m.fileUrl && m.fileType.startsWith('audio/');
-      const adminAvatar = 'https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png';
-      const userAvatar  = 'https://cdn-icons-png.flaticon.com/512/8599/8599138.png';
-
-      if (m.sender === 'Admin') {
-        items.push(
-          <div key={i} className="chat-message-wrapper admin">
-            <div className={`chat-message admin ${isAudio ? 'audio-msg' : ''}`}>
-              {m.fileUrl && m.fileType.startsWith('image/') && (
-                <img src={m.fileUrl} alt="upload" className="uploaded-image" />
-              )}
-              {isAudio && <audio controls src={m.fileUrl} className="uploaded-audio" />}
-              {m.text && <span className="message-text">{m.text}</span>}
-              <span className="msg-time">{fmtTime(m.createdAt)}</span>
-            </div>
-            <img src={adminAvatar} alt="Admin" className="message-avatar" />
-          </div>
-        );
-      } else {
-        items.push(
-          <div key={i} className="chat-message-wrapper user">
-            <img src={userAvatar} alt={user.name} className="message-avatar" />
-            <div className={`chat-message user ${isAudio ? 'audio-msg' : ''}`}>
-              {m.fileUrl && m.fileType.startsWith('image/') && (
-                <img src={m.fileUrl} alt="upload" className="uploaded-image" />
-              )}
-              {isAudio && <audio controls src={m.fileUrl} className="uploaded-audio" />}
-              {m.text && <span className="message-text">{m.text}</span>}
-              <span className="msg-time">{fmtTime(m.createdAt)}</span>
-            </div>
-          </div>
-        );
-      }
-    });
-
-    return items.length ? items : <p className="empty-msg">No messages yet.</p>;
-  };
-
-  return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <img
-          src={`https://api.dicebear.com/7.x/identicon/svg?seed=${user.email}`}
-          alt={user.name}
-          className="chat-avatar"
-        />
-        <div>
-          <strong>{user.name}</strong><br />
-          <small>{sessionId}</small>
-        </div>
-      </div>
-
-      <div className="chat-messages">
-        {renderMessages()}
-        <div ref={endRef} />
-      </div>
-
-      {previewURL && (
-        <div className="preview-wrapper">
-          {fileType.startsWith('image/') ? (
-            <img src={previewURL} alt="preview" />
-          ) : (
-            <audio controls src={previewURL} />
-          )}
-          <button onClick={() => { setFile(null); setPreview(''); }}>✕</button>
-        </div>
-      )}
-
-      <form onSubmit={handleSend} className="chat-form">
-        <label htmlFor="imgPick" className="attach-btn" title="Attach image">
-          <ImageIcon size={20} />
-        </label>
-        <input
-          id="imgPick"
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={e => pickFile(e, 'image/')}
-        />
-
-        <label htmlFor="audPick" className="attach-btn" title="Attach audio file">
-          <MicOff size={20} />
-        </label>
-        <input
-          id="audPick"
-          type="file"
-          accept="audio/*"
-          hidden
-          onChange={e => pickFile(e, 'audio/')}
-        />
-
-        <button
-          type="button"
-          className={`attach-btn ${recording ? 'recording' : ''}`}
-          title={recording ? 'Stop recording' : 'Record audio'}
-          onClick={recording ? stopRecording : startRecording}
-        >
-          <Mic size={20} />
-        </button>
-
-        <input
-          className="chat-input"
-          placeholder="Type a message…"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-        />
-
-        <button className="chat-send-button">Send</button>
-      </form>
-    </div>
-  );
-};
-
-/* SettingsPanel – sidebar modal */
-const SettingsPanel = ({ onClose, refreshUsers }) => {
-  const [activeTab, setActiveTab]     = useState('create');
-  const [name, setName]               = useState('');
-  const [email, setEmail]             = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [users, setUsers]             = useState([]);
-  const [error, setError]             = useState('');
-
-  const fetchUsers = async () => {
-    try {
-      const { data } = await axios.get(`${API}/api/users`);
-      setUsers(data);
-    } catch (err) {
-      console.error('Fetch users error:', err);
-    }
-  };
-
-  const handleDeleteUser = async id => {
-    if (!window.confirm('Delete this user?')) return;
-    try {
-      await axios.delete(`${API}/api/users/${id}`);
-      fetchUsers();
-      refreshUsers();
-    } catch (err) {
-      console.error('Delete user error:', err);
-      alert('Could not delete user.');
-    }
-  };
-
-  const handleCreateUser = async e => {
-    e.preventDefault();
-    if (!name || !email || !companyName) {
-      setError('All fields are required.');
-      return;
-    }
-    try {
-      await axios.post(`${API}/api/create-user`, {
-        name, email, companyName
-      });
-      setName(''); setEmail(''); setCompanyName('');
-      setError('');
-      setActiveTab('list');
-      await fetchUsers();
-      refreshUsers();
-    } catch (err) {
-      console.error('Create user error:', err);
-      setError('Error creating user.');
-    }
-  };
-
-  useEffect(() => { if (activeTab === 'list') fetchUsers(); }, [activeTab]);
-
-  return (
-    <div className="settings-panel">
-      <div className="settings-tabs">
-        <button
-          className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
-          onClick={() => setActiveTab('create')}
-        >
-          Create User
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'list' ? 'active' : ''}`}
-          onClick={() => setActiveTab('list')}
-        >
-          User List
-        </button>
-      </div>
-
-      <div className="settings-content">
-        {activeTab === 'create' && (
-          <form className="user-form" onSubmit={handleCreateUser}>
-            {error && <p className="form-error">{error}</p>}
-            <div className="form-group">
-              <label>Name:</label>
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Email:</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Company Name:</label>
-              <input
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                required
-              />
-            </div>
-            <button className="create-user-button">Create</button>
-
-            {/* Invite link group */}
-            <div className="form-group invite-link-group">
-              <label>Registration Link:</label>
-              <div className="invite-link-wrapper">
-                <input
-                  type="text"
-                  value={`${window.location.origin}/register`}
-                  readOnly
-                />
-                <button
-                  type="button"
-                  className="copy-invite-link-button"
-                  onClick={() =>
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/register`
-                    )
-                  }
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-        {activeTab === 'list' && (
-          <table className="user-table">
-            <thead>
-              <tr>
-                <th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length ? (
-                users.map(u => (
-                  <tr key={u._id}>
-                    <td>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td>{u.companyName}</td>
-                    <td>
-                      <a href={u.link} target="_blank" rel="noopener noreferrer">
-                        {u.link}
-                      </a>
-                    </td>
-                    <td>
-                      <button
-                        className="delete-user-button"
-                        onClick={() => handleDeleteUser(u._id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center' }}>
-                    No users found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <button className="close-settings-button" onClick={onClose}>
-        Close Settings
-      </button>
-    </div>
-  );
-};
-
-/* AdminPanel – root component with Logout button */
-const AdminPanel = ({ onLogout }) => {
-  const [users, setUsers]       = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [showSettings, setShow] = useState(false);
-  const navigate                = useNavigate();
-
-  const loadUsers = async () => {
-    try {
-      const { data } = await axios.get(`${API}/api/users`);
-      setUsers(data);
-    } catch (err) {
-      console.error('Fetch users error:', err);
-    }
-  };
-
-  useEffect(() => { loadUsers(); }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  return (
-    <div className="admin-panel">
-      <div className="admin-container">
-        <aside className="admin-sidebar">
-          <div className="logo-container">
-            <img
-              src="https://zentrades.pro/wp-content/uploads/2024/04/ZenFire-Black.svg"
-              alt="Logo"
-              className="logo-image"
-            />
-          </div>
-
-          <div className="user-list">
-            {users.length ? (
-              users.map(u => {
-                const active    = selected?._id === u._id;
-                const sessionId = u.link.split('/').pop();
-                return (
-                  <div
-                    key={u._id}
-                    className={`session-card ${active ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSelected({ ...u, sessionId });
-                      setShow(false);
-                    }}
-                  >
-                    <img
-                      src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                      alt={u.name}
-                      className="avatar-sm"
-                    />
-                    <div>
-                      <p className="session-id">{u.name}</p>
-                      <small className="session-description">{u.email}</small>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="no-session">No users created yet.</p>
-            )}
-          </div>
-
-          <button className="settings-button" onClick={() => setShow(true)}>
-            Settings
-          </button>
-          <button className="logout-button" onClick={onLogout}>
-            Logout
-          </button>
-        </aside>
-
-        <main className="admin-main">
-          {showSettings ? (
-            <SettingsPanel
-              onClose={() => setShow(false)}
-              refreshUsers={loadUsers}
-            />
-          ) : selected ? (
-            <ChatComponent sessionId={selected.sessionId} user={selected} />
-          ) : (
-            <div className="no-chat-selected" style={{ flexDirection: 'column' }}>
-              <img
-                src="https://img.freepik.com/free-vector/feedback-loop-concept-illustration_114360-21826.jpg?w=360"
-                alt="Select a user"
-                className="empty-illustration"
-              />
-              <p style={{ marginTop: 16, color: '#666' }}>
-                Select a user from the left panel.
-              </p>
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
-  );
-};
-
-export default AdminPanel;
+/* ============================
+   Shared Variables
+   ============================ */
+   :root {
+    --primary:        #007bff;
+    --primary-dark:   #0062d1;
+    --primary-light:  #4c8dff;
+    --sidebar-bg:     linear-gradient(160deg,#152642 0%,#1e3572 50%,#27448f 100%);
+    --card-radius:    10px;
+    --shadow-sm:      0 2px 4px rgba(0,0,0,.08);
+    --shadow-lg:      0 10px 24px rgba(0,0,0,.15);
+  }
+  
+  /* ============================
+     Layout
+     ============================ */
+  .admin-panel     { height: 100vh; display: flex; flex-direction: column; font-family: Arial, sans-serif; }
+  .admin-container { flex: 1; display: flex; min-height: 0; }
+  
+  /* ============================
+     Sidebar
+     ============================ */
+  .admin-sidebar {
+    width: 28%;
+    min-width: 250px;
+    background: var(--sidebar-bg);
+    color: #fff;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(6px);
+    border-radius: 0 10px 10px 0;
+  }
+  .logo-container {
+    text-align: center;
+    margin-bottom: 28px;
+    padding: 20px;
+    background: rgba(255,255,255,0.15);
+    border-radius: var(--card-radius);
+  }
+  .logo-image {
+    max-width: 180px;
+    height: auto;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,.25));
+  }
+  .user-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .user-list::-webkit-scrollbar { width: 6px; }
+  .user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+  
+  .session-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--card-radius);
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(4px);
+  }
+  .session-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .session-card.selected {
+    background: var(--primary-light);
+    border-color: var(--primary);
+  }
+  .avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .session-id {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: inherit;
+  }
+  .session-description {
+    font-size: 12px;
+    opacity: 0.8;
+  }
+  
+  .settings-button,
+  .logout-button {
+    width: 100%;
+    padding: 14px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    border: none;
+    border-radius: var(--card-radius);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
+  }
+  .settings-button { background: var(--primary); }
+  .logout-button   { background: #dc3545; margin-top: 10px; }
+  .settings-button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .logout-button:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  /* ============================
+     Main Content
+     ============================ */
+  .admin-main {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .no-chat-selected {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #888;
+    font-size: 18px;
+  }
+  .empty-illustration {
+    max-width: 280px;
+    width: 100%;
+    opacity: 0.6;
+  }
+  
+  /* ============================
+     Chat Header
+     ============================ */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+  }
+  
+  /* ============================
+     Message List
+     ============================ */
+  .chat-messages {
+    flex: 1;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    min-height: 0;
+    height: 82vh;
+  }
+  
+  .date-separator {
+    text-align: center;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #666;
+    font-weight: 900;
+  }
+  
+  .chat-message-wrapper {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 10px;
+  }
+  .chat-message-wrapper.user {
+    justify-content: flex-start;
+    margin-left: 15px;
+    margin-right: auto;
+  }
+  .chat-message-wrapper.admin {
+    justify-content: flex-end;
+    margin-right: 15px;
+    margin-left: auto;
+  }
+  
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .chat-message {
+    max-width: 70%;
+    border-radius: 14px;
+    padding: 10px 14px;
+    position: relative;
+    word-break: break-word;
+  }
+  .chat-message.admin { background: var(--primary); color: #fff; }
+  .chat-message.user  { background: #eaeaea;    color: #333; width: 257px; }
+  
+  .audio-msg {
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  
+  .uploaded-image {
+    max-width: 220px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .uploaded-audio {
+    width: 220px;
+    margin-bottom: 6px;
+    outline: none;
+  }
+  
+  .message-text {
+    display: block;
+    word-break: break-word;
+  }
+  .msg-time {
+    display: block;
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+  }
+  
+  /* ============================
+     Preview Before Sending
+     ============================ */
+  .preview-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .preview-wrapper img {
+    width: 120px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .preview-wrapper audio {
+    width: 140px;
+    outline: none;
+  }
+  .preview-wrapper button {
+    border: none;
+    background: #dc3545;
+    color: #fff;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+  }
+  
+  /* ============================
+     Chat Input Bar
+     ============================ */
+  .chat-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 40px;
+    background: #fff;
+  }
+  .attach-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .attach-btn:hover { background: rgba(0,0,0,.08); }
+  .attach-btn.recording {
+    background: #dc3545 !important;
+    color: #fff;
+  }
+  
+  .chat-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    padding: 8px 0;
+  }
+  
+  .chat-send-button {
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .chat-send-button:hover { background: var(--primary-dark); }
+  
+  /* ============================
+     Settings Panel
+     ============================ */
+  .settings-panel {
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+  }
+  .settings-tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+  .tab-button {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-button.active {
+    border-bottom: 2px solid var(--primary);
+    font-weight: bold;
+  }
+  .settings-content {
+    padding: 10px 0;
+  }
+  .user-form {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+  .form-error {
+    color: red;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .create-user-button {
+    width: 100%;
+    padding: 10px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .user-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .user-table th,
+  .user-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  .user-table th {
+    background: #f5f5f5;
+  }
+  .delete-user-button {
+    padding: 4px 8px;
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .close-settings-button {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  /* ============================
+     Responsive Adjustments
+     ============================ */
+  @media (max-width: 900px) {
+    .admin-sidebar { width: 35%; }
+    .admin-main    { width: 65%; }
+  }
+  @media (max-width: 600px) {
+    .admin-sidebar { display: none; }
+    .admin-main    { width: 100%; }
+    .chat-avatar   { display: none; }
+  }
+  /* in AdminPanel.css or SettingsPanel.css */
+.invite-link-group {
+  margin-top: 1rem;
+}
+.invite-link-wrapper {
+  display: flex;
+}
+.invite-link-wrapper input {
+  flex: 1;
+  margin-right: 0.5rem;
+}
