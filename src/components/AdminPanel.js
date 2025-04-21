@@ -311,8 +311,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
     if (!window.confirm('Delete this user?')) return;
     try {
       await axios.delete(`${API}/api/users/${id}`);
-      fetchUsers();
-      refreshUsers();
+      fetchUsers(); refreshUsers();
     } catch (err) {
       console.error('Delete user error:', err);
       alert('Could not delete user.');
@@ -326,14 +325,9 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
       return;
     }
     try {
-      await axios.post(`${API}/api/create-user`, {
-        name, email, companyName
-      });
-      setName(''); setEmail(''); setCompanyName('');
-      setError('');
-      setActiveTab('list');
-      await fetchUsers();
-      refreshUsers();
+      await axios.post(`${API}/api/create-user`, { name, email, companyName });
+      setName(''); setEmail(''); setCompanyName(''); setError('');
+      setActiveTab('list'); await fetchUsers(); refreshUsers();
     } catch (err) {
       console.error('Create user error:', err);
       setError('Error creating user.');
@@ -365,48 +359,25 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
             {error && <p className="form-error">{error}</p>}
             <div className="form-group">
               <label>Name:</label>
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required
-              />
+              <input value={name} onChange={e => setName(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Email:</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Company Name:</label>
-              <input
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                required
-              />
+              <input value={companyName} onChange={e => setCompanyName(e.target.value)} required />
             </div>
             <button className="create-user-button">Create</button>
-
-            {/* Invite link group */}
             <div className="form-group invite-link-group">
               <label>Registration Link:</label>
               <div className="invite-link-wrapper">
-                <input
-                  type="text"
-                  value={`${window.location.origin}/register`}
-                  readOnly
-                />
+                <input type="text" value={`${window.location.origin}/register`} readOnly />
                 <button
                   type="button"
                   className="copy-invite-link-button"
-                  onClick={() =>
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/register`
-                    )
-                  }
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/register`)}
                 >
                   Copy
                 </button>
@@ -417,62 +388,39 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
         {activeTab === 'list' && (
           <table className="user-table">
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Company</th>
-                <th>Link</th>
-                <th>Action</th>
-              </tr>
+              <tr><th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th></tr>
             </thead>
             <tbody>
-              {users.length ? (
-                users.map(u => (
-                  <tr key={u._id}>
-                    <td>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td>{u.companyName}</td>
-                    <td>
-                      <a href={u.link} target="_blank" rel="noopener noreferrer">
-                        {u.link}
-                      </a>
-                    </td>
-                    <td>
-                      <button
-                        className="delete-user-button"
-                        onClick={() => handleDeleteUser(u._id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center' }}>
-                    No users found.
+              {users.length ? users.map(u => (
+                <tr key={u._id}>
+                  <td>{u.name}</td><td>{u.email}</td><td>{u.companyName}</td>
+                  <td><a href={u.link} target="_blank" rel="noopener noreferrer">{u.link}</a></td>
+                  <td>
+                    <button className="delete-user-button" onClick={() => handleDeleteUser(u._id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
+              )) : (
+                <tr><td colSpan="5" style={{ textAlign: 'center' }}>No users found.</td></tr>
               )}
             </tbody>
           </table>
         )}
       </div>
 
-      <button className="close-settings-button" onClick={onClose}>
-        Close Settings
-      </button>
+      <button className="close-settings-button" onClick={onClose}>Close Settings</button>
     </div>
   );
 };
 
-/* AdminPanel – root component with Logout button */
+/* AdminPanel – root component */
 const AdminPanel = ({ onLogout }) => {
-  const [users, setUsers]         = useState([]);
+  const [users, setUsers]             = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [selected, setSelected]   = useState(null);
-  const [showSettings, setShow]   = useState(false);
-  const navigate                  = useNavigate();
+  const [selected, setSelected]       = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const navigate                      = useNavigate();
 
   const loadUsers = async () => {
     try {
@@ -483,22 +431,31 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => {
+    loadUsers();
+    // hydrate unreadCounts from localStorage
+    const stored = localStorage.getItem('unreadCounts');
+    if (stored) {
+      try {
+        setUnreadCounts(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
 
   useEffect(() => {
-    socket.on('newUser', user => {
-      setUsers(prev => [user, ...prev]);
-    });
+    localStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+  }, [unreadCounts]);
+
+  useEffect(() => {
+    socket.on('newUser', user => setUsers(prev => [user, ...prev]));
 
     const handleNewMsg = m => {
       if (m.sender === 'Admin') return;
-      if (selected && m.sessionId === selected.sessionId) {
-        setUnreadCounts(prev => ({ ...prev, [m.sessionId]: 0 }));
+      const sid = m.sessionId;
+      if (selected?.sessionId === sid) {
+        setUnreadCounts(prev => ({ ...prev, [sid]: 0 }));
       } else {
-        setUnreadCounts(prev => ({
-          ...prev,
-          [m.sessionId]: (prev[m.sessionId] || 0) + 1
-        }));
+        setUnreadCounts(prev => ({ ...prev, [sid]: (prev[sid]||0) + 1 }));
       }
     };
     socket.on('chatMessage', handleNewMsg);
@@ -509,9 +466,11 @@ const AdminPanel = ({ onLogout }) => {
     };
   }, [selected]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const selectUser = u => {
+    const sessionId = u.link.split('/').pop();
+    setSelected({ ...u, sessionId });
+    setShowSettings(false);
+    setUnreadCounts(prev => ({ ...prev, [sessionId]: 0 }));
   };
 
   return (
@@ -525,57 +484,39 @@ const AdminPanel = ({ onLogout }) => {
               className="logo-image"
             />
           </div>
-
           <div className="user-list">
-            {users.length ? (
-              users.map(u => {
-                const active    = selected?._id === u._id;
-                const sessionId = u.link.split('/').pop();
-                const count     = unreadCounts[sessionId] || 0;
-                return (
-                  <div
-                    key={u._id}
-                    className={`session-card ${active ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSelected({ ...u, sessionId });
-                      setShow(false);
-                      setUnreadCounts(prev => ({ ...prev, [sessionId]: 0 }));
-                    }}
-                  >
-                    <img
-                      src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                      alt={u.name}
-                      className="avatar-sm"
-                    />
-                    <div>
-                      <p className="session-id">{u.name}</p>
-                      <small className="session-description">{u.email}</small>
-                    </div>
-                    {count > 0 && (
-                      <span className="unread-badge">{count}</span>
-                    )}
+            {users.length ? users.map(u => {
+              const active    = selected?._id === u._id;
+              const sessionId = u.link.split('/').pop();
+              const count     = unreadCounts[sessionId] || 0;
+              return (
+                <div
+                  key={u._id}
+                  className={`session-card ${active ? 'selected' : ''}`}
+                  onClick={() => selectUser(u)}
+                >
+                  <img
+                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
+                    alt={u.name}
+                    className="avatar-sm"
+                  />
+                  <div>
+                    <p className="session-id">{u.name}</p>
+                    <small className="session-description">{u.email}</small>
                   </div>
-                );
-              })
-            ) : (
+                  {count > 0 && <span className="unread-badge">{count}</span>}
+                </div>
+              );
+            }) : (
               <p className="no-session">No users created yet.</p>
             )}
           </div>
-
-          <button className="settings-button" onClick={() => setShow(true)}>
-            Settings
-          </button>
-          <button className="logout-button" onClick={handleLogout}>
-            Logout
-          </button>
+          <button className="settings-button" onClick={() => setShowSettings(true)}>Settings</button>
+          <button className="logout-button" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </aside>
-
         <main className="admin-main">
           {showSettings ? (
-            <SettingsPanel
-              onClose={() => setShow(false)}
-              refreshUsers={loadUsers}
-            />
+            <SettingsPanel onClose={() => setShowSettings(false)} refreshUsers={loadUsers} />
           ) : selected ? (
             <ChatComponent sessionId={selected.sessionId} user={selected} />
           ) : (
@@ -585,9 +526,7 @@ const AdminPanel = ({ onLogout }) => {
                 alt="Select a user"
                 className="empty-illustration"
               />
-              <p style={{ marginTop: 16, color: '#666' }}>
-                Select a user from the left panel.
-              </p>
+              <p style={{ marginTop: 16, color: '#666' }}>Select a user from the left panel.</p>
             </div>
           )}
         </main>
