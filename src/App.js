@@ -8,6 +8,7 @@ import {
 import AdminPanel from './components/AdminPanel';
 import Chat       from './components/Chat';
 import Login      from './components/Login';
+import PublicRegister from './components/PublicRegister';
 
 export default function App() {
   // 1. Read the token synchronously from localStorage on first render:
@@ -47,6 +48,9 @@ export default function App() {
               : <Navigate to="/login" replace />
           }
         />
+
+        {/* Public self‑registration page */}
+        <Route path="/register" element={<PublicRegister />} />
 
         {/* Public chat for users */}
         <Route path="/chat/:sessionId" element={<Chat />} />
