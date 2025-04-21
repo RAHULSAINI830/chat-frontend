@@ -42,6 +42,11 @@ const ChatComponent = ({ sessionId, user }) => {
     if (!sessionId) return;
     socket.emit('joinSession', sessionId);
 
+    // Request notification permission once
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+
     axios
       .get(`${API}/api/messages/${sessionId}`)
       .then(res => setMessages(res.data))
@@ -54,6 +59,18 @@ const ChatComponent = ({ sessionId, user }) => {
           createdAt: m.createdAt || new Date().toISOString()
         };
         setMessages(prev => [...prev, msg]);
+
+        // Show desktop notification for incoming messages from user
+        if (
+          'Notification' in window &&
+          Notification.permission === 'granted' &&
+          m.sender !== 'Admin'
+        ) {
+          new Notification(`New message from ${m.sender}`, {
+            body: m.text?.slice(0, 100) || 'Sent an attachment',
+            icon: m.fileType.startsWith('image/') ? m.fileUrl : undefined
+          });
+        }
       }
     };
 
@@ -470,7 +487,7 @@ const AdminPanel = ({ onLogout }) => {
     });
     return () => socket.off('newUser');
   }, []);
-  
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -496,7 +513,7 @@ const AdminPanel = ({ onLogout }) => {
                 return (
                   <div
                     key={u._id}
-                    className={`session-card ${active ? 'selected' : ''}`}
+                    className={`session-card ${active ? 'selected' : ''}`}`
                     onClick={() => {
                       setSelected({ ...u, sessionId });
                       setShow(false);
@@ -504,7 +521,7 @@ const AdminPanel = ({ onLogout }) => {
                   >
                     <img
                       src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                      alt={u.name}
+                      alt={u.name}`
                       className="avatar-sm"
                     />
                     <div>
