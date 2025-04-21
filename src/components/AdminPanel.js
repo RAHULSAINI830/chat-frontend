@@ -492,80 +492,80 @@ const AdminPanel = ({ onLogout }) => {
   };
 
   return (
-    <div className="admin-panel">
-      <div className="admin-container">
-        <aside className="admin-sidebar">
-          <div className="logo-container">
-            <img
-              src="https://zentrades.pro/wp-content/uploads/2024/04/ZenFire-Black.svg"
-              alt="Logo"
-              className="logo-image"
-            />
-          </div>
+  <div className="admin-panel">
+    <div className="admin-container">
+      <aside className="admin-sidebar">
+        <div className="logo-container">
+          <img
+            src="https://zentrades.pro/wp-content/uploads/2024/04/ZenFire-Black.svg"
+            alt="Logo"
+            className="logo-image"
+          />
+        </div>
 
-          <div className="user-list">
-            {users.length ? (
-              users.map(u => {
-                const active    = selected?._id === u._id;
-                const sessionId = u.link.split('/').pop();
-                return (
-                  <div
-                    key={u._id}
-                    className={`session-card ${active ? 'selected' : ''}`}
-                    onClick={() => {
-                      setSelected({ ...u, sessionId });
-                      setShow(false);
-                    }}
-                  >
-                    <img
-                      src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
-                      alt={u.name}
-                      className="avatar-sm"
-                    />
-                    <div>
-                      <p className="session-id">{u.name}</p>
-                      <small className="session-description">{u.email}</small>
-                    </div>
+        <div className="user-list">
+          {users.length ? (
+            users.map(u => {
+              const active    = selected?._id === u._id;
+              const sessionId = u.link.split('/').pop();
+              return (
+                <div
+                  key={u._id}
+                  className={`session-card ${active ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelected({ ...u, sessionId });
+                    setShow(false);
+                  }}
+                >
+                  <img
+                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${u.email}`}
+                    alt={u.name}
+                    className="avatar-sm"
+                  />
+                  <div>
+                    <p className="session-id">{u.name}</p>
+                    <small className="session-description">{u.email}</small>
                   </div>
-                );
-              })
-            ) : (
-              <p className="no-session">No users created yet.</p>
-            )}
-          </div>
-
-          <button className="settings-button" onClick={() => setShow(true)}>
-            Settings
-          </button>
-          <button className="logout-button" onClick={onLogout}>
-            Logout
-          </button>
-        </aside>
-
-        <main className="admin-main">
-          {showSettings ? (
-            <SettingsPanel
-              onClose={() => setShow(false)}
-              refreshUsers={loadUsers}
-            />
-          ) : selected ? (
-            <ChatComponent sessionId={selected.sessionId} user={selected} />
+                </div>
+              );
+            })
           ) : (
-            <div className="no-chat-selected" style={{ flexDirection: 'column' }}>
-              <img
-                src="https://img.freepik.com/free-vector/feedback-loop-concept-illustration_114360-21826.jpg?w=360"
-                alt="Select a user"
-                className="empty-illustration"
-              />
-              <p style={{ marginTop: 16, color: '#666' }}>
-                Select a user from the left panel.
-              </p>
-            </div>
+            <p className="no-session">No users created yet.</p>
           )}
-        </main>
-      </div>
+        </div>
+
+        <button className="settings-button" onClick={() => setShow(true)}>
+          Settings
+        </button>
+        <button className="logout-button" onClick={onLogout}>
+          Logout
+        </button>
+      </aside>
+
+      <main className="admin-main">
+        {showSettings ? (
+          <SettingsPanel
+            onClose={() => setShow(false)}
+            refreshUsers={loadUsers}
+          />
+        ) : selected ? (
+          <ChatComponent sessionId={selected.sessionId} user={selected} />
+        ) : (
+          <div className="no-chat-selected" style={{ flexDirection: 'column' }}>
+            <img
+              src="https://img.freepik.com/free-vector/feedback-loop-concept-illustration_114360-21826.jpg?w=360"
+              alt="Select a user"
+              className="empty-illustration"
+            />
+            <p style={{ marginTop: 16, color: '#666' }}>
+              Select a user from the left panel.
+            </p>
+          </div>
+        )}
+      </main>
     </div>
-  );
+  </div>
+);
 };
 
 export default AdminPanel;
