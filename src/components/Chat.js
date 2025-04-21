@@ -24,9 +24,9 @@ export default function Chat() {
   const endRef = useRef(null);
 
   // time / date formatters
-  const fmt = (ts) =>
+  const fmt = ts =>
     new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const fmtDate = (ts) => {
+  const fmtDate = ts => {
     const d = new Date(ts);
     return d.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -41,19 +41,35 @@ export default function Chat() {
     if (!sessionId) return;
     socket.emit('joinSession', sessionId);
 
+    // request notification permission once
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+
     axios
       .get(`${API}/api/messages/${sessionId}`)
-      .then((res) => setMessages(res.data))
+      .then(res => setMessages(res.data))
       .catch(console.error);
 
-    const onMsg = (m) => {
+    const onMsg = m => {
       if (m.sessionId === sessionId) {
-        setMessages((ms) => [
-          ...ms,
-          { ...m, createdAt: m.createdAt || new Date().toISOString() },
-        ]);
+        const msg = { ...m, createdAt: m.createdAt || new Date().toISOString() };
+        setMessages(ms => [...ms, msg]);
+
+        // desktop notification for messages not sent by this user
+        if (
+          'Notification' in window &&
+          Notification.permission === 'granted' &&
+          m.sender !== 'User'
+        ) {
+          new Notification(`New message from ${m.sender}`, {
+            body: m.text?.slice(0, 100) || 'Sent an attachment',
+            icon: m.fileType.startsWith('image/') ? m.fileUrl : undefined,
+          });
+        }
       }
     };
+
     socket.on('chatMessage', onMsg);
     return () => socket.off('chatMessage', onMsg);
   }, [sessionId]);
@@ -82,7 +98,7 @@ export default function Chat() {
       const mr = new MediaRecorder(stream);
       mediaRef.current = mr;
       chunksRef.current = [];
-      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.ondataavailable = e => e.data.size && chunksRef.current.push(e.data);
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         if (blob.size > 100 * 1024) {
@@ -101,12 +117,12 @@ export default function Chat() {
   };
   const stopRec = () => {
     mediaRef.current?.stop();
-    mediaRef.current?.stream.getTracks().forEach((t) => t.stop());
+    mediaRef.current?.stream.getTracks().forEach(t => t.stop());
     setRec(false);
   };
 
   // send message
-  const handleSend = async (e) => {
+  const handleSend = async e => {
     e.preventDefault();
     if (!input.trim() && !file) return;
 
@@ -249,7 +265,7 @@ export default function Chat() {
           type="file"
           accept="image/*"
           hidden
-          onChange={(e) => pick(e, 'image/')}
+          onChange={e => pick(e, 'image/')}
         />
 
         <label htmlFor="audPick" className="user-chat-attach-btn">
@@ -260,7 +276,7 @@ export default function Chat() {
           type="file"
           accept="audio/*"
           hidden
-          onChange={(e) => pick(e, 'audio/')}
+          onChange={e => pick(e, 'audio/')}
         />
 
         <button
@@ -275,7 +291,7 @@ export default function Chat() {
           className="user-chat-input"
           placeholder="Type a message…"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
         />
 
         <button type="submit" className="user-chat-send-button">
