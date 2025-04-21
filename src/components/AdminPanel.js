@@ -463,6 +463,14 @@ const AdminPanel = ({ onLogout }) => {
 
   useEffect(() => { loadUsers(); }, []);
 
+  useEffect(() => {
+    // when a new user is created elsewhere, prepend it to our list
+    socket.on('newUser', user => {
+      setUsers(prev => [user, ...prev]);
+    });
+    return () => socket.off('newUser');
+  }, []);
+  
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
