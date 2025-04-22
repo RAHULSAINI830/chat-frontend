@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
 import './Login.css';
 
+// Define allowed user credentials
+const VALID_USERS = [
+  { email: 'rahul.saini@zentrades.pro', password: 'Rahul@830' },
+  { email: 'manny@a-advanced.com',         password: 'advanceed@123!' },
+  { email: 'bob@example.com',           password: 'Bob@456' },
+  // add more users here as needed
+];
+
 export default function Login({ onLogin }) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -9,8 +17,13 @@ export default function Login({ onLogin }) {
 
   const handleSubmit = e => {
     e.preventDefault();
-    // Temporary hardcoded credentials
-    if (email === 'rahul.saini@zentrades.pro' && password === 'Rahul@830') {
+
+    // Check against VALID_USERS array
+    const matched = VALID_USERS.some(
+      user => user.email === email && user.password === password
+    );
+
+    if (matched) {
       setError('');
       localStorage.setItem('token', 'dummy-token');
       onLogin();
@@ -22,9 +35,8 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-container">
       <div className="login-card">
-        {/* Logo */}
         <img
-          src="https://zentrades.pro/wp-content/uploads/2024/04/ZenTrades-scaled.webp"               /* or your hosted logo URL */
+          src="https://zentrades.pro/wp-content/uploads/2024/04/ZenTrades-scaled.webp"
           alt="Company Logo"
           className="login-logo"
         />
