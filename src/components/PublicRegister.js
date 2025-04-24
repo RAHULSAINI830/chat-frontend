@@ -70,7 +70,7 @@ const PublicRegister = () => {
           </div>
 
           <div className="pr-form-group">
-            <label htmlFor="pr-company" className="pr-form-label">Company Name</label>
+            <label htmlFor="pr-company" className="pr-form-label">Company/User Name</label>
             <div className="pr-input-icon-wrapper">
               <Briefcase size={16} className="pr-input-icon" />
               <input
