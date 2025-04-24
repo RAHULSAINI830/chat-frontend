@@ -15,16 +15,16 @@ const socket = io(API, { transports: ['websocket'] });
 
 /* ChatComponent – right‑hand pane with external avatars on opposite side */
 const ChatComponent = ({ sessionId, user }) => {
-  const [messages, setMessages]   = useState([]);
-  const [input, setInput]         = useState('');
-  const [file, setFile]           = useState(null);
-  const [fileType, setFileType]   = useState('');
-  const [previewURL, setPreview]  = useState('');
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState('');
+  const [previewURL, setPreview] = useState('');
   const [recording, setRecording] = useState(false);
-  const [sending, setSending]     = useState(false);
-  const mediaRecRef               = useRef(null);
-  const chunksRef                 = useRef([]);
-  const endRef                    = useRef(null);
+  const [sending, setSending] = useState(false);
+  const mediaRecRef = useRef(null);
+  const chunksRef = useRef([]);
+  const endRef = useRef(null);
 
   const fmtTime = ts =>
     new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -33,9 +33,9 @@ const ChatComponent = ({ sessionId, user }) => {
     const d = new Date(ts);
     return d.toLocaleDateString('en-US', {
       weekday: 'long',
-      month:   'short',
-      day:     'numeric',
-      year:    'numeric'
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -183,7 +183,7 @@ const ChatComponent = ({ sessionId, user }) => {
 
       const isAudio = m.fileUrl && m.fileType.startsWith('audio/');
       const adminAvatar = 'https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-512.png';
-      const userAvatar  = 'https://cdn-icons-png.flaticon.com/512/8599/8599138.png';
+      const userAvatar = 'https://cdn-icons-png.flaticon.com/512/8599/8599138.png';
 
       if (m.sender === 'Admin') {
         items.push(
@@ -299,12 +299,12 @@ const ChatComponent = ({ sessionId, user }) => {
 
 /* SettingsPanel – sidebar modal */
 const SettingsPanel = ({ onClose, refreshUsers }) => {
-  const [activeTab, setActiveTab]     = useState('create');
-  const [name, setName]               = useState('');
-  const [email, setEmail]             = useState('');
+  const [activeTab, setActiveTab] = useState('create');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [users, setUsers]             = useState([]);
-  const [error, setError]             = useState('');
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -476,11 +476,11 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
 
 /* AdminPanel – root component with Logout button */
 const AdminPanel = ({ onLogout }) => {
-  const [users, setUsers]             = useState([]);
+  const [users, setUsers] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [selected, setSelected]       = useState(null);
+  const [selected, setSelected] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const navigate                      = useNavigate();
+  const navigate = useNavigate();
 
   const loadUsers = async () => {
     try {
@@ -497,7 +497,7 @@ const AdminPanel = ({ onLogout }) => {
     if (stored) {
       try {
         setUnreadCounts(JSON.parse(stored));
-      } catch {}
+      } catch { }
     }
   }, []);
 
@@ -514,7 +514,7 @@ const AdminPanel = ({ onLogout }) => {
       if (selected?.sessionId === sid) {
         setUnreadCounts(prev => ({ ...prev, [sid]: 0 }));
       } else {
-        setUnreadCounts(prev => ({ ...prev, [sid]: (prev[sid]||0) + 1 }));
+        setUnreadCounts(prev => ({ ...prev, [sid]: (prev[sid] || 0) + 1 }));
       }
     };
     socket.on('chatMessage', handleNewMsg);
@@ -531,6 +531,12 @@ const AdminPanel = ({ onLogout }) => {
     setShowSettings(false);
     setUnreadCounts(prev => ({ ...prev, [sessionId]: 0 }));
   };
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    onLogout?.();
+    navigate('/login');
+  };
+
 
   return (
     <div className="admin-panel">
@@ -545,9 +551,9 @@ const AdminPanel = ({ onLogout }) => {
           </div>
           <div className="user-list">
             {users.length ? users.map(u => {
-              const active    = selected?._id === u._id;
+              const active = selected?._id === u._id;
               const sessionId = u.link.split('/').pop();
-              const count     = unreadCounts[sessionId] || 0;
+              const count = unreadCounts[sessionId] || 0;
               return (
                 <div
                   key={u._id}
@@ -571,7 +577,12 @@ const AdminPanel = ({ onLogout }) => {
             )}
           </div>
           <button className="settings-button" onClick={() => setShowSettings(true)}>Settings</button>
-          <button className="logout-button" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </aside>
         <main className="admin-main">
           {showSettings ? (
