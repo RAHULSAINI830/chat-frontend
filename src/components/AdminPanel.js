@@ -430,7 +430,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
           <table className="user-table">
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>Company</th><th>Link</th><th>Action</th>
+                <th>Name</th><th>Email</th><th>Company/User</th><th>Link</th><th>Action</th>
               </tr>
             </thead>
             <tbody>
