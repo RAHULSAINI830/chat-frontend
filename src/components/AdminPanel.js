@@ -393,7 +393,7 @@ const SettingsPanel = ({ onClose, refreshUsers }) => {
               />
             </div>
             <div className="form-group">
-              <label>Company Name:</label>
+              <label>Company/User Name:</label>
               <input
                 value={companyName}
                 onChange={e => setCompanyName(e.target.value)}
