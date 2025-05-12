@@ -1,0 +1,139 @@
+/* src/components/PublicRegister.css */
+
+:root {
+  --pr-bg-color: #f4f7fa;
+  --pr-card-bg: #ffffff;
+  --pr-primary-color: #4096ff;
+  --pr-primary-hover: #2978c2;
+  --pr-text-color: #333333;
+  --pr-text-muted: #555555;
+  --pr-error-color: #e74c3c;
+  --pr-border-color: #ccd0d5;
+  --pr-box-shadow: rgba(0, 0, 0, 0.05);
+  --pr-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--pr-font-family);
+  background-color: var(--pr-bg-color);
+  color: var(--pr-text-color);
+  height: 100%;
+}
+
+.pr-register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.pr-register-card {
+  background-color: var(--pr-card-bg);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px var(--pr-box-shadow);
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+}
+
+.pr-register-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.75rem;
+  text-align: center;
+}
+
+.pr-form-error {
+  color: var(--pr-error-color);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.pr-register-form .pr-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.pr-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--pr-text-muted);
+}
+
+.pr-input-icon-wrapper {
+  position: relative;
+}
+
+.pr-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pr-text-muted);
+}
+
+.pr-input-field {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  padding-left: 2.25rem;
+  font-size: 1rem;
+  border: 1px solid var(--pr-border-color);
+  border-radius: 0.375rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.pr-input-field:focus {
+  outline: none;
+  border-color: var(--pr-primary-color);
+}
+
+.pr-register-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--pr-primary-color);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pr-register-button:hover {
+  background-color: var(--pr-primary-hover);
+}
+
+@media (max-width: 480px) {
+  .pr-register-container {
+    padding: 1rem;
+  }
+  .pr-register-card {
+    padding: 1.5rem;
+  }
+  .pr-register-title {
+    font-size: 1.5rem;
+  }
+  .pr-register-button {
+    padding: 0.65rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .pr-register-card {
+    max-width: 480px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pr-register-card {
+    max-width: 520px;
+    padding: 2.5rem;
+  }
+}
